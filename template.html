@@ -175,7 +175,6 @@ function center(task) {
     $("#answerbtn").addClass("disabled");
 
     var r = new OpenLayers.Bounds.fromArray([nb, eb, sb, wb]);
-    console.log(nb, eb, sb, wb)
     r = r.transform(new OpenLayers.Projection("EPSG:4326"), task.map.getProjectionObject());
     task.map.setOptions({
         maxExtent: r,
@@ -183,7 +182,6 @@ function center(task) {
     });
     task.map.zoomToExtent(r);
     minZoomLevel = task.map.getZoom();
-    console.log(minZoomLevel)
     task.map.events.register("moveend", this, function (e) {
         if (task.map.getZoom() < minZoomLevel){
             task.map.zoomToExtent(r);
@@ -230,7 +228,7 @@ pybossa.taskLoaded(function(task, deferred){
         // Google Maps Satellite layer
         task.map.addLayer(new OpenLayers.Layer.Google(
                 "Google Satellite",
-                {type: google.maps.MapTypeId.SATELLITE, numZoomLevels: 12}
+                {type: google.maps.MapTypeId.SATELLITE, numZoomLevels: 24}
         ));
 
         // Black color for the path control to integrate with black controls
