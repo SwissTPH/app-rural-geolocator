@@ -20,7 +20,8 @@ def createKMLFromContainer(data, filename):
     doc.append(KML.Folder("all"))
     colorIndex = 0
     for tIndex, task in enumerate(data):
-        for hIndex, house in enumerate(task["info"]["houses"]):
+        print task
+        for hIndex, house in enumerate(task.info["houses"]):
             pm = KML.Placemark(
                 KML.styleUrl("#report-style-" + str(colorIndex % len(iconColors))),
                 KML.name(str(tIndex) + "-" + str(hIndex)),
@@ -47,11 +48,35 @@ if not options.api_key:
 pbclient.set('api_key', options.api_key)
 pbclient.set('endpoint', 'http://crowdcrafting.org')
 #TODO: replace hardcoded app_id
-data = pbclient.get_taskruns(app_id=786, limit=1000, offset=0)
-#TODO: how to get tasks run from the api?
+response = pbclient.find_app(short_name='RuralGeolocator')
+# Check errors:
+if type(response) == dict and (response.get('status') == 'failed'):
+    print "Error"
+    print response
+    exit(0)
+# Get the app
+app = response[0]
+data = pbclient.get_taskruns(app_id=app.id, limit=1000, offset=0)
+limit = 100
+offset = 0
+task_runs = []
+
+while len(data) > 0:
+    response = pbclient.get_taskruns(app_id=app.id, limit=limit, offset=offset)
+    if type(response) != dict:
+        # Add the new task runs
+        task_runs += response
+        data = response
+        offset += 100
+    else:
+        # Break the while
+        data = []
+
+# Parse the task_run.info data to extract the GeoJSON
+data = [task_run for task_run in task_runs]
 
 #for now just use the json export, save as exportTest in local dir
-json_data = open('exportTest.json')
-data = json.load(json_data)
-json_data.close()
+#json_data = open('exportTest.json')
+#data = json.load(json_data)
+#json_data.close()
 createKMLFromContainer(data, "houses.kml")
