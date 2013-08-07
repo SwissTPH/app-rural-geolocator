@@ -142,6 +142,9 @@ if __name__ == "__main__":
             format_error("pbclient.update_app", response)
 
     if options.create_tasks:
+        response = pbclient.find_app(short_name='RuralGeolocator')
+        app = response[0]
+        app_id = app.id
         #TODO: lots of hardcoding
         #The northern, southern, western, and eastern bounds of the area to work on.
         nb = 34.116
@@ -164,7 +167,7 @@ if __name__ == "__main__":
                                  northbound=nbr, southbound=sbr, westbound=wbc, eastbound=ebc,
                                  location=str(row) + "_" + str(col))
                 #TODO: replace hardcoded app id
-                response = pbclient.create_task(786, task_info)
+                response = pbclient.create_task(app_id, task_info)
                 check_api_error(response)
 
     if options.update_template:

@@ -1,4 +1,3 @@
-import json
 from lxml import etree
 from pykml.factory import KML_ElementMaker as KML
 import pbclient
@@ -47,7 +46,6 @@ if not options.api_key:
                      "an application and tasks in PyBossa")
 pbclient.set('api_key', options.api_key)
 pbclient.set('endpoint', 'http://crowdcrafting.org')
-#TODO: replace hardcoded app_id
 response = pbclient.find_app(short_name='RuralGeolocator')
 # Check errors:
 if type(response) == dict and (response.get('status') == 'failed'):
