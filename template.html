@@ -169,6 +169,7 @@ function restrictView(map, bounds) {
         if (map.getZoom() < minZoomLevel){
             map.zoomToExtent(bounds);
         }
+        //console.log(map.getZoom())
     });
 }
 
@@ -210,7 +211,7 @@ pybossa.taskLoaded(function(task, deferred){
         // Google Maps Satellite layer
         task.map.addLayer(new OpenLayers.Layer.Google(
                 "Google Satellite",
-                {type: google.maps.MapTypeId.SATELLITE, numZoomLevels: 30}
+                {type: google.maps.MapTypeId.SATELLITE, numZoomLevels: 20}
         ));
 
         var styleBlack = new OpenLayers.StyleMap({
@@ -229,7 +230,6 @@ pybossa.taskLoaded(function(task, deferred){
         var eb = parseFloat(task.info.eastbound);
         var bb = new OpenLayers.Bounds.fromArray([wb, sb, eb, nb]);
         bb = bb.transform(new OpenLayers.Projection("EPSG:4326"), task.map.getProjectionObject());
-        console.log([nb, eb, sb, wb])
         task.areaLayer.events.on({
             featureselected: function(e) {
                 if (!task.drawControls['modify'].active) {
@@ -251,7 +251,7 @@ pybossa.taskLoaded(function(task, deferred){
         });
 
         var box = new OpenLayers.Feature.Vector(bb.toGeometry(), null,
-                {strokeColor: "#ee9900", fillOpacity: 0, strokeWidth: 5});
+                {strokeColor: "#ee9900", fillOpacity: 0, strokeWidth: 3});
         var boxes  = new OpenLayers.Layer.Vector( "Boxes" );
         boxes.addFeatures(box);
         task.map.addLayer(boxes)
@@ -278,7 +278,6 @@ pybossa.taskLoaded(function(task, deferred){
         var wmb = parseFloat(task.info.westmapbound);
         var emb = parseFloat(task.info.eastmapbound);
         var mb = new OpenLayers.Bounds.fromArray([wmb, smb, emb, nmb]);
-        console.log([nmb, emb, smb, wmb])
         mb = mb.transform(new OpenLayers.Projection("EPSG:4326"), task.map.getProjectionObject());
         restrictView(task.map, mb);
         map_div.hide();
