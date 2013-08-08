@@ -157,19 +157,17 @@ function toggleControl(task, control) {
     }
 }
 
-// Restrict scrolling and zooming
+// Restrict panning and zooming
 function restrictView(map, bounds) {
-    var r = new OpenLayers.Bounds.fromArray(bounds);
-    r = r.transform(new OpenLayers.Projection("EPSG:4326"), map.getProjectionObject());
     map.setOptions({
-        maxExtent: r,
-        restrictedExtent: r
+        maxExtent: bounds,
+        restrictedExtent: bounds
     });
-    map.zoomToExtent(r);
+    map.zoomToExtent(bounds);
     minZoomLevel = map.getZoom();
     map.events.register("moveend", this, function (e) {
         if (map.getZoom() < minZoomLevel){
-            map.zoomToExtent(r);
+            map.zoomToExtent(bounds);
         }
     });
 }
@@ -188,14 +186,9 @@ function loadUserProgress() {
 
 pybossa.taskLoaded(function(task, deferred){
     if ( !$.isEmptyObject(task) ) {
-        var nb = parseFloat(task.info.northbound);
-        var sb = parseFloat(task.info.southbound);
-        var wb = parseFloat(task.info.westbound);
-        var eb = parseFloat(task.info.eastbound);
-
         var map_div = $("<div/>", {id:"map_task_" + task.id, 'class': 'span4'});
         var map_canvas = $("<div/>", {id: "map_" + task.id, 'class': 'map_canvas'});
-        map_canvas.css("width", "600px");
+        map_canvas.css("width", "550px");
         map_canvas.css("height", "400px");
         map_div.append(map_canvas);
         $("#maps").prepend(map_div);
@@ -205,7 +198,6 @@ pybossa.taskLoaded(function(task, deferred){
             controls: [
                 new OpenLayers.Control.Navigation(),
                 new OpenLayers.Control.PanZoomBar(),
-                new OpenLayers.Control.LayerSwitcher({roundedCornerColor: 'black'}),
                 new OpenLayers.Control.MousePosition({displayProjection:new OpenLayers.Projection("EPSG:4326")}),
                 new OpenLayers.Control.Attribution()
             ],
@@ -221,8 +213,6 @@ pybossa.taskLoaded(function(task, deferred){
                 {type: google.maps.MapTypeId.SATELLITE, numZoomLevels: 30}
         ));
 
-        // Black color for the path control to integrate with black controls
-        // and inverse Bootstrap color scheme
         var styleBlack = new OpenLayers.StyleMap({
             pointRadius: 3,
             fillColor: "rgba(256,0,0,0.5)",
@@ -233,7 +223,13 @@ pybossa.taskLoaded(function(task, deferred){
         task.areaLayer = new OpenLayers.Layer.Vector("Area Layer", {
             styleMap: styleBlack
         });
-
+        var nb = parseFloat(task.info.northbound);
+        var sb = parseFloat(task.info.southbound);
+        var wb = parseFloat(task.info.westbound);
+        var eb = parseFloat(task.info.eastbound);
+        var bb = new OpenLayers.Bounds.fromArray([wb, sb, eb, nb]);
+        bb = bb.transform(new OpenLayers.Projection("EPSG:4326"), task.map.getProjectionObject());
+        console.log([nb, eb, sb, wb])
         task.areaLayer.events.on({
             featureselected: function(e) {
                 if (!task.drawControls['modify'].active) {
@@ -244,8 +240,21 @@ pybossa.taskLoaded(function(task, deferred){
                         task.areaLayer.removeFeatures(feature);
                     }
                 }
+            },
+            featureadded: function(e) {
+                var feature = task.areaLayer.getFeatureById(e.feature.id);
+                if (!bb.contains(feature.geometry.x, feature.geometry.y, false)) {
+                    var remove =  alert("Please only mark housed inside the box");
+                    task.areaLayer.removeFeatures(feature);
+                }
             }
         });
+
+        var box = new OpenLayers.Feature.Vector(bb.toGeometry(), null,
+                {strokeColor: "#ee9900", fillOpacity: 0, strokeWidth: 5});
+        var boxes  = new OpenLayers.Layer.Vector( "Boxes" );
+        boxes.addFeatures(box);
+        task.map.addLayer(boxes)
         task.map.addLayer(task.areaLayer);
 
 
@@ -264,9 +273,14 @@ pybossa.taskLoaded(function(task, deferred){
             task.map.addControl(task.drawControls[key]);
         }
         task.areaLayer.removeAllFeatures();
-        restrictView(task.map, [nb, eb, sb, wb]);
-        var sz = task.map.getCurrentSize();
-        console.log(sz);
+        var nmb = parseFloat(task.info.northmapbound);
+        var smb = parseFloat(task.info.southmapbound);
+        var wmb = parseFloat(task.info.westmapbound);
+        var emb = parseFloat(task.info.eastmapbound);
+        var mb = new OpenLayers.Bounds.fromArray([wmb, smb, emb, nmb]);
+        console.log([nmb, emb, smb, wmb])
+        mb = mb.transform(new OpenLayers.Projection("EPSG:4326"), task.map.getProjectionObject());
+        restrictView(task.map, mb);
         map_div.hide();
         deferred.resolve(task);
     }

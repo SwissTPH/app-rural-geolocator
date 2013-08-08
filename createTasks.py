@@ -147,24 +147,27 @@ if __name__ == "__main__":
         app_id = app.id
         #TODO: lots of hardcoding
         #The northern, southern, western, and eastern bounds of the area to work on.
-        nb = 34.116
-        sb = 34.23
-        wb = -0.349
-        eb = -0.443
+        nb = -0.349
+        sb = -0.443
+        wb = 34.116
+        eb = 34.23
         #Size of the tasks, into how many rows and columns should the area be divided.
         task_cols = 3
         task_rows = 2
-        ns_step = (sb - nb) / task_rows
-        we_step = (eb - wb) / task_cols
+        ns_step = (sb - nb) / task_cols
+        we_step = (eb - wb) / task_rows
         for row in range(task_rows):
-            nbr = nb + row * ns_step
-            sbr = nb + (row + 1) * ns_step
+            wbr = wb + row * we_step
+            ebr = wb + (row + 1) * we_step
             for col in range(task_cols):
-                wbc = wb + col * we_step
-                ebc = wb + (col + 1) * we_step
-                print(nbr, sbr, wbc, ebc)
+                nbc = nb + col * ns_step
+                sbc = nb + (col + 1) * ns_step
+                print(wbr, ebr, nbc, sbc)
+                boundary = 0.01
                 task_info = dict(question=app_config['question'], n_answers=int(options.n_answers),
-                                 northbound=nbr, southbound=sbr, westbound=wbc, eastbound=ebc,
+                                 westbound=wbr, eastbound=ebr, northbound=nbc, southbound=sbc,
+                                 westmapbound=wbr - boundary, eastmapbound=ebr + boundary,
+                                 northmapbound=nbc + boundary, southmapbound=sbc - boundary,
                                  location=str(row) + "_" + str(col))
                 #TODO: replace hardcoded app id
                 response = pbclient.create_task(app_id, task_info)
