@@ -21,6 +21,8 @@ import logging
 from optparse import OptionParser
 from requests import exceptions
 import pbclient
+from matplotlib.path import Path
+from matplotlib.transforms import Bbox
 
 
 def check_api_error(api_response):
@@ -147,33 +149,42 @@ if __name__ == "__main__":
         response = pbclient.find_app(short_name='RuralGeolocator')
         app = response[0]
         app_id = app.id
-        #TODO: lots of hardcoding
+        #polygon around area to be tasked, as list of (lat, long) lists
+        rusingaOutlineData = json.load(open('data/area.json'))
+        rusingaOutlineVertices = []
+        for point in rusingaOutlineData:
+            rusingaOutlineVertices.append(point)
+        islandPolygon = Path(rusingaOutlineVertices)
+        points = islandPolygon.get_extents().get_points()
         #The northern, southern, western, and eastern bounds of the area to work on.
-        nb = -0.349
-        sb = -0.443
-        wb = 34.116
-        eb = 34.23
+        nb = points[1][0]
+        wb = points[0][1]
+        sb = points[0][0]
+        eb = points[1][1]
+        print (nb, wb, sb, eb)
         #Size of the tasks, into how many rows and columns should the area be divided.
         task_cols = 40
-        task_rows = 20
+        task_rows = 30
         ns_step = (sb - nb) / task_cols
         we_step = (eb - wb) / task_rows
+        task_counter = 0
         for row in range(task_rows):
             wbr = wb + row * we_step
             ebr = wb + (row + 1) * we_step
             for col in range(task_cols):
                 nbc = nb + col * ns_step
                 sbc = nb + (col + 1) * ns_step
-                print(wbr, ebr, nbc, sbc)
-                boundary = 0.01
-                task_info = dict(question=app_config['question'], n_answers=int(options.n_answers),
-                                 westbound=wbr, eastbound=ebr, northbound=nbc, southbound=sbc,
-                                 westmapbound=wbr - boundary, eastmapbound=ebr + boundary,
-                                 northmapbound=nbc + boundary, southmapbound=sbc - boundary,
-                                 location=str(row) + "_" + str(col), batch=options.batch)
-                #TODO: replace hardcoded app id
-                response = pbclient.create_task(app_id, task_info)
-                check_api_error(response)
+                if islandPolygon.intersects_bbox(Bbox([[nbc, wbr], [sbc, ebr]])):
+                    boundary = 0.01
+                    task_info = dict(question=app_config['question'], n_answers=int(options.n_answers),
+                                     westbound=wbr, eastbound=ebr, northbound=nbc, southbound=sbc,
+                                     westmapbound=wbr - boundary, eastmapbound=ebr + boundary,
+                                     northmapbound=nbc + boundary, southmapbound=sbc - boundary,
+                                     location=str(row) + "_" + str(col), batch=options.batch)
+                    response = pbclient.create_task(app_id, task_info)
+                    check_api_error(response)
+                    task_counter += 1
+                    print(task_counter)
 
     if options.update_template:
         print "Updating app template"
