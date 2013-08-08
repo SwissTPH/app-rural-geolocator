@@ -252,7 +252,7 @@ pybossa.taskLoaded(function(task, deferred){
         });
 
         var box = new OpenLayers.Feature.Vector(bb.toGeometry(), null,
-                {strokeColor: "#ee9900", fillOpacity: 0, strokeWidth: 3});
+                {strokeColor: "#eeaa00", fillOpacity: 0, strokeWidth: 3});
         var boxes  = new OpenLayers.Layer.Vector( "Boxes" );
         boxes.addFeatures(box);
         task.map.addLayer(boxes)
