@@ -57,10 +57,7 @@ if __name__ == "__main__":
                       dest="create_app",
                       help="Create the application",
                       metavar="CREATE-APP")
-    # Template
-    parser.add_option("-t", "--template", dest="template",
-                      help="PyBossa HTML+JS template for app presenter",
-                      metavar="TEMPLATE")
+
     # Update template for tasks and long_description for app
     parser.add_option("-u", "--update-template", action="store_true",
                       dest="update_template",
@@ -72,6 +69,10 @@ if __name__ == "__main__":
                       dest="create_tasks",
                       help="Create tasks",
                       metavar="CREATE-TASKS")
+
+    parser.add_option("-b", "--batch", dest="batch",
+                      help="Batch name",
+                      metavar="BATCH")
 
     # Update tasks question
     parser.add_option("-q", "--update-tasks",
@@ -109,9 +110,10 @@ if __name__ == "__main__":
                      "an application and tasks in PyBossa")
     pbclient.set('api_key', options.api_key)
 
-    if not options.template:
-        print("Using default template: template.html")
-        options.template = "template.html"
+    if not options.batch:
+        print("Using default batch id: none")
+        options.batch = "none"
+
     if not options.n_answers:
         options.n_answers = 1
 
@@ -152,8 +154,8 @@ if __name__ == "__main__":
         wb = 34.116
         eb = 34.23
         #Size of the tasks, into how many rows and columns should the area be divided.
-        task_cols = 3
-        task_rows = 2
+        task_cols = 40
+        task_rows = 20
         ns_step = (sb - nb) / task_cols
         we_step = (eb - wb) / task_rows
         for row in range(task_rows):
@@ -168,7 +170,7 @@ if __name__ == "__main__":
                                  westbound=wbr, eastbound=ebr, northbound=nbc, southbound=sbc,
                                  westmapbound=wbr - boundary, eastmapbound=ebr + boundary,
                                  northmapbound=nbc + boundary, southmapbound=sbc - boundary,
-                                 location=str(row) + "_" + str(col))
+                                 location=str(row) + "_" + str(col), batch=options.batch)
                 #TODO: replace hardcoded app id
                 response = pbclient.create_task(app_id, task_info)
                 check_api_error(response)

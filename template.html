@@ -186,14 +186,13 @@ function loadUserProgress() {
 }
 
 pybossa.taskLoaded(function(task, deferred){
-    if ( !$.isEmptyObject(task) ) {
+    if (!$.isEmptyObject(task)) {
         var map_div = $("<div/>", {id:"map_task_" + task.id, 'class': 'span4'});
         var map_canvas = $("<div/>", {id: "map_" + task.id, 'class': 'map_canvas'});
         map_canvas.css("width", "550px");
         map_canvas.css("height", "400px");
         map_div.append(map_canvas);
         $("#maps").prepend(map_div);
-
         updateBar("Loading task data...");
         task.map = new OpenLayers.Map("map_" + task.id, {
             controls: [
@@ -209,10 +208,11 @@ pybossa.taskLoaded(function(task, deferred){
 
         // Layers
         // Google Maps Satellite layer
-        task.map.addLayer(new OpenLayers.Layer.Google(
+        task.satelliteLayer = new OpenLayers.Layer.Google(
                 "Google Satellite",
                 {type: google.maps.MapTypeId.SATELLITE, numZoomLevels: 20}
-        ));
+        );
+        task.map.addLayer(task.satelliteLayer);
 
         var styleBlack = new OpenLayers.StyleMap({
             pointRadius: 3,
@@ -256,7 +256,6 @@ pybossa.taskLoaded(function(task, deferred){
         boxes.addFeatures(box);
         task.map.addLayer(boxes)
         task.map.addLayer(task.areaLayer);
-
 
         // Drawing controls
         task.drawControls = {
