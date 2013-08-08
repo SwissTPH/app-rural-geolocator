@@ -165,6 +165,7 @@ function restrictView(map, bounds) {
     });
     map.zoomToExtent(bounds);
     minZoomLevel = map.getZoom();
+    map.zoomTo(17);
     map.events.register("moveend", this, function (e) {
         if (map.getZoom() < minZoomLevel){
             map.zoomToExtent(bounds);
@@ -189,8 +190,8 @@ pybossa.taskLoaded(function(task, deferred){
     if (!$.isEmptyObject(task)) {
         var map_div = $("<div/>", {id:"map_task_" + task.id, 'class': 'span4'});
         var map_canvas = $("<div/>", {id: "map_" + task.id, 'class': 'map_canvas'});
-        map_canvas.css("width", "550px");
-        map_canvas.css("height", "400px");
+        map_canvas.css("width", "780px");
+        map_canvas.css("height", "410px");
         map_div.append(map_canvas);
         $("#maps").prepend(map_div);
         updateBar("Loading task data...");
