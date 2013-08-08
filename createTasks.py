@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (C) 2012 Citizen Cyberscience Centre
+# Copyright (C) 2012 Citizen Cyberscience Centre, Swiss TPH
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 
 import json
 import logging
-from optparse import OptionParser
+from argparse import ArgumentParser
 from requests import exceptions
 import pbclient
 from matplotlib.path import Path
@@ -45,54 +45,26 @@ def format_error(module, error):
 if __name__ == "__main__":
     # Arguments for the application
     usage = "usage: %prog [options]"
-    parser = OptionParser(usage)
+    parser = ArgumentParser(usage)
     # URL where PyBossa listens
-    parser.add_option("-s", "--server", dest="api_url",
-                      help="PyBossa URL http://domain.com/",
-                      metavar="URL")
+    parser.add_argument("-s", "--server", help="PyBossa URL http://domain.com/", default="http://crowdcrafting.org")
     # API-KEY
-    parser.add_option("-k", "--api-key", dest="api_key",
-                      help="PyBossa User API-KEY to interact with PyBossa",
-                      metavar="API-KEY")
+    parser.add_argument("-k", "--api-key", help="PyBossa User API-KEY to interact with PyBossa", required=True)
     # Create App
-    parser.add_option("-a", "--create-app", action="store_true",
-                      dest="create_app",
-                      help="Create the application",
-                      metavar="CREATE-APP")
-
+    parser.add_argument("-a", "--create-app", action="store_true", help="Create the application")
     # Update template for tasks and long_description for app
-    parser.add_option("-u", "--update-template", action="store_true",
-                      dest="update_template",
-                      help="Update Tasks template",
-                      metavar="UPDATE-TEMPLATE")
-
+    parser.add_argument("-u", "--update-template", action="store_true", help="Update Tasks template")
     # Update template for tasks and long_description for app
-    parser.add_option("-c", "--create-tasks", action="store_true",
-                      dest="create_tasks",
-                      help="Create tasks",
-                      metavar="CREATE-TASKS")
-
-    parser.add_option("-b", "--batch", dest="batch",
-                      help="Batch name",
-                      metavar="BATCH")
-
+    parser.add_argument("-c", "--create-tasks", action="store_true", help="Create tasks")
+    parser.add_argument("-b", "--batch", help="Batch name", default="none")
     # Update tasks question
-    parser.add_option("-q", "--update-tasks",
-                      dest="update_tasks",
-                      help="Update Tasks n_answers",
-                      metavar="UPDATE-TASKS")
-
+    parser.add_argument("-q", "--update-tasks", help="Update Tasks n_answers", action="store_true")
     # Modify the number of TaskRuns per Task
-    # (default 30)
-    parser.add_option("-n", "--number-answers",
-                      dest="n_answers",
-                      help="Number of answers per task",
-                      metavar="N-ANSWERS")
+    parser.add_argument("-n", "--number-answers", help="Number of answers per task", default=1)
     # Verbose?
-    parser.add_option("-v", "--verbose", action="store_true",
-                      dest="verbose")
+    parser.add_argument("-v", "--verbose", action="store_true")
 
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
     # Load app details
     try:
@@ -103,27 +75,14 @@ if __name__ == "__main__":
         print "app.json is missing! Please create a new one"
         exit(0)
 
-    if not options.api_url:
-        options.api_url = 'http://crowdcrafting.org'
-    pbclient.set('endpoint', options.api_url)
+    pbclient.set('endpoint', args.server)
+    pbclient.set('api_key', args.api_key)
 
-    if not options.api_key:
-        parser.error("You must supply an API-KEY to create " +
-                     "an application and tasks in PyBossa")
-    pbclient.set('api_key', options.api_key)
+    if args.verbose:
+        print('Running against PyBosssa instance at: %s' % args.server)
+        print('Using API-KEY: %s' % args.api_key)
 
-    if not options.batch:
-        print("Using default batch id: none")
-        options.batch = "none"
-
-    if not options.n_answers:
-        options.n_answers = 1
-
-    if options.verbose:
-        print('Running against PyBosssa instance at: %s' % options.api_url)
-        print('Using API-KEY: %s' % options.api_key)
-
-    if options.create_app:
+    if args.create_app:
         try:
             response = pbclient.create_app(app_config['name'],
                                            app_config['short_name'],
@@ -145,7 +104,7 @@ if __name__ == "__main__":
         except:
             format_error("pbclient.update_app", response)
 
-    if options.create_tasks:
+    if args.create_tasks:
         response = pbclient.find_app(short_name='RuralGeolocator')
         app = response[0]
         app_id = app.id
@@ -176,17 +135,17 @@ if __name__ == "__main__":
                 sbc = nb + (col + 1) * ns_step
                 if islandPolygon.intersects_bbox(Bbox([[nbc, wbr], [sbc, ebr]])):
                     boundary = 0.01
-                    task_info = dict(question=app_config['question'], n_answers=int(options.n_answers),
+                    task_info = dict(question=app_config['question'], n_answers=int(args.number_answers),
                                      westbound=wbr, eastbound=ebr, northbound=nbc, southbound=sbc,
                                      westmapbound=wbr - boundary, eastmapbound=ebr + boundary,
                                      northmapbound=nbc + boundary, southmapbound=sbc - boundary,
-                                     location=str(row) + "_" + str(col), batch=options.batch)
+                                     location=str(row) + "_" + str(col), batch=args.batch)
                     response = pbclient.create_task(app_id, task_info)
                     check_api_error(response)
                     task_counter += 1
                     print(task_counter)
 
-    if options.update_template:
+    if args.update_template:
         print "Updating app template"
         try:
             response = pbclient.find_app(short_name=app_config['short_name'])
@@ -198,9 +157,9 @@ if __name__ == "__main__":
             response = pbclient.update_app(app)
             check_api_error(response)
         except:
-            format_error("pbclient.find_app or pbclient.update_app", response)
+            format_error("pbclient.find_app or pbclient.update_app", "")
 
-    if options.update_tasks:
+    if args.update_tasks:
         print "Updating task question"
         try:
             response = pbclient.find_app(short_name=app_config['short_name'])
@@ -222,7 +181,7 @@ if __name__ == "__main__":
                 print "Updating task: %s" % task.id
                 if ('n_answers' in task.info.keys()):
                     del(task.info['n_answers'])
-                task.n_answers = int(options.update_tasks)
+                task.n_answers = int(args.number_answers)
                 try:
                     response = pbclient.update_task(task)
                     check_api_error(response)
@@ -236,6 +195,3 @@ if __name__ == "__main__":
             except:
                 format_error("pbclient.get_tasks", tasks)
         print "%s Tasks have been updated!" % n_tasks
-
-    if not options.create_app and not options.update_template:
-        parser.error("Please check --help or -h for the available options")

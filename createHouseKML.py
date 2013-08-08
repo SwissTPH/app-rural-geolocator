@@ -1,7 +1,7 @@
 from lxml import etree
 from pykml.factory import KML_ElementMaker as KML
 import pbclient
-from optparse import OptionParser
+from argparse import ArgumentParser
 
 
 def createKMLFromContainer(data, filename):
@@ -36,16 +36,13 @@ def createKMLFromContainer(data, filename):
     out.write(etree.tostring(doc, pretty_print=True))
     out.close()
 
-parser = OptionParser()
-parser.add_option("-k", "--api-key", dest="api_key",
-                      help="PyBossa User API-KEY to interact with PyBossa",
-                      metavar="API-KEY")
-(options, args) = parser.parse_args()
-if not options.api_key:
-    parser.error("You must supply an API-KEY to create " +
-                     "an application and tasks in PyBossa")
-pbclient.set('api_key', options.api_key)
-pbclient.set('endpoint', 'http://crowdcrafting.org')
+parser = ArgumentParser()
+parser.add_argument("-k", "--api-key", help="PyBossa User API-KEY to interact with PyBossa", required=True)
+parser.add_argument("-s", "--server", help="PyBossa URL http://domain.com/", default="http://crowdcrafting.org")
+args = parser.parse_args()
+pbclient.set('api_key', args.api_key)
+pbclient.set('endpoint', args.server)
+
 response = pbclient.find_app(short_name='RuralGeolocator')
 # Check errors:
 if type(response) == dict and (response.get('status') == 'failed'):
@@ -72,9 +69,4 @@ while len(data) > 0:
 
 # Parse the task_run.info data to extract the GeoJSON
 data = [task_run for task_run in task_runs]
-
-#for now just use the json export, save as exportTest in local dir
-#json_data = open('exportTest.json')
-#data = json.load(json_data)
-#json_data.close()
 createKMLFromContainer(data, "houses.kml")
