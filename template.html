@@ -78,7 +78,7 @@
 <div id="maps" class="row">
     <div id="answer" class="skeleton span10">
         <div id="question">
-            <h1>Add a point per house</h1>
+            <h3>Add a mark for every house you see</h3>
         </div>
         <div id="controls" class="btn-group" data-toggle="buttons-radio" style="padding-bottom:5px;">
             <button id="navigate" class="btn btn-inverse btn-map-ctrl">
@@ -163,7 +163,7 @@ function restrictView(map, bounds) {
         restrictedExtent: bounds
     });
     //map.zoomToExtent(bounds);
-    var minZoomLevel = 14;
+    var minZoomLevel = 15;
     map.events.register("moveend", this, function (e) {
         if (map.getZoom() < minZoomLevel){
             map.zoomToExtent(bounds);
@@ -190,8 +190,8 @@ pybossa.taskLoaded(function(task, deferred){
     if (!$.isEmptyObject(task)) {
         var map_div = $("<div/>", {id:"map_task_" + task.id, 'class': 'span4'});
         var map_canvas = $("<div/>", {id: "map_" + task.id, 'class': 'map_canvas'});
-        map_canvas.css("width", "780px");
-        map_canvas.css("height", "410px");
+        map_canvas.css("width", "700px");
+        map_canvas.css("height", "370px");
         map_div.append(map_canvas);
         $("#maps").prepend(map_div);
         updateBar("Loading task data...");

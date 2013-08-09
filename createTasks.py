@@ -122,8 +122,8 @@ if __name__ == "__main__":
         eb = points[1][1]
         print (nb, wb, sb, eb)
         #Size of the tasks, into how many rows and columns should the area be divided.
-        task_cols = 40
-        task_rows = 30
+        task_cols = 55
+        task_rows = 40
         ns_step = (sb - nb) / task_cols
         we_step = (eb - wb) / task_rows
         task_counter = 0
