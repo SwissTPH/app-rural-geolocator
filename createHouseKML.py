@@ -1,7 +1,8 @@
+from argparse import ArgumentParser
+
 from lxml import etree
 from pykml.factory import KML_ElementMaker as KML
 import pbclient
-from argparse import ArgumentParser
 
 
 def createKMLFromContainer(data, filename):
@@ -48,7 +49,6 @@ response = pbclient.find_app(short_name='RuralGeolocator')
 if type(response) == dict and (response.get('status') == 'failed'):
     print "Error"
     print response
-    exit(0)
 # Get the app
 app = response[0]
 data = pbclient.get_taskruns(app_id=app.id, limit=1000, offset=0)
