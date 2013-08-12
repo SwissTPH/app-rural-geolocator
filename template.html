@@ -46,34 +46,6 @@
     </div>
 </div>
 
-<div class="row">
-    <!-- Success and Error Messages for the user -->
-    <div class="span12" style="height:50px">
-        <div id="success" class="alert alert-success" style="display:none;">
-            <a class="close">×</a>
-            <strong>Well done!</strong> Your answer has been saved
-        </div>
-        <div id="loading" class="alert alert-info" style="display:none;">
-            <a class="close">×</a>
-            Loading next task...
-        </div>
-        <div id="taskcompleted" class="alert alert-info" style="display:none;">
-            <strong>The task has been completed!</strong> Thanks a lot!
-        </div>
-        <div id="finish" class="alert alert-success" style="display:none;">
-            <strong>Congratulations!</strong> You have participated in all available tasks!
-            <br/>
-            <div class="alert-actions">
-                <a class="btn small" href="/">Go back</a>
-                <a class="btn small" href="/app">or, Check other applications</a>
-            </div>
-        </div>
-        <div id="error" class="alert alert-error" style="display:none;">
-            <a class="close">×</a>
-            <strong>Error!</strong> Something went wrong, please contact the site administrators
-        </div>
-    </div> <!-- End Success and Error Messages for the user -->
-</div> <!-- End of Row -->
 
 <div id="maps" class="row">
     <div id="answer" class="skeleton span10">
@@ -101,6 +73,35 @@
         <p>You are working on task: <span id="task-id" class="label label-warning"></span>
             <a href="../tutorial" class="btn btn-primary pull-right" style="margin-left:-15px;">Tutorial</a>
         </p>
+        <hr>
+        <div class="row">
+            <!-- Success and Error Messages for the user -->
+            <div class="span12" style="height:50px">
+                <div id="success" class="alert alert-success" style="display:none;">
+                    <a class="close">×</a>
+                    <strong>Well done!</strong> Your answer has been saved
+                </div>
+                <div id="loading" class="alert alert-info" style="display:none;">
+                    <a class="close">×</a>
+                    Loading next task...
+                </div>
+                <div id="taskcompleted" class="alert alert-info" style="display:none;">
+                    <strong>The task has been completed!</strong> Thanks a lot!
+                </div>
+                <div id="finish" class="alert alert-success" style="display:none;">
+                    <strong>Congratulations!</strong> You have participated in all available tasks!
+                    <br/>
+                    <div class="alert-actions">
+                        <a class="btn small" href="/">Go back</a>
+                        <a class="btn small" href="/app">or, Check other applications</a>
+                    </div>
+                </div>
+                <div id="error" class="alert alert-error" style="display:none;">
+                    <a class="close">×</a>
+                    <strong>Error!</strong> Something went wrong, please contact the site administrators
+                </div>
+            </div> <!-- End Success and Error Messages for the user -->
+        </div> <!-- End of Row -->
         <hr>
         <h4>Your progress</h4>
         <div class="progress progress-striped">
@@ -163,16 +164,14 @@ function restrictView(map, bounds) {
         maxExtent: bounds,
         restrictedExtent: bounds
     });
-    //map.zoomToExtent(bounds);
-    var minZoomLevel = 15;
-    map.events.register("moveend", this, function (e) {
+    map.zoomToExtent(bounds);
+    var minZoomLevel = map.getZoom();
+    map.events.register("zoomend", this, function(e){
         if (map.getZoom() < minZoomLevel){
             map.zoomToExtent(bounds);
-            map.zoomTo(minZoomLevel);
-            //console.log(map.getZoom());
         }
+        console.log(bounds)
     });
-    map.zoomTo(minZoomLevel);
 }
 
 function loadUserProgress() {
@@ -267,7 +266,7 @@ pybossa.taskLoaded(function(task, deferred){
                 {strokeColor: "#eeaa00", fillOpacity: 0, strokeWidth: 3});
         var boxes  = new OpenLayers.Layer.Vector( "Boxes" );
         boxes.addFeatures(box);
-        task.map.addLayer(boxes)
+        task.map.addLayer(boxes);
         task.map.addLayer(task.areaLayer);
 
         // Drawing controls
