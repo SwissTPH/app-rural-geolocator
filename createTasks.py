@@ -17,8 +17,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import json
+import shapefile
 import logging
 from argparse import ArgumentParser
+from ConfigParser import RawConfigParser
 from requests import exceptions
 import pbclient
 from matplotlib.path import Path
@@ -42,6 +44,22 @@ def format_error(module, error):
     exit(1)
 
 
+def polygon_file_to_path(filename):
+    if filename.endswith(".json"):
+        #TODO: use proper structure
+        rusingaOutlineData = json.load(open(filename))
+        rusingaOutlineVertices = []
+        for point in rusingaOutlineData:
+            rusingaOutlineVertices.append(point)
+        islandPolygon = Path(rusingaOutlineVertices)
+    if filename.endswith(".shp"):
+        #TODO: not yet working
+        sf = shapefile.Reader(filename)
+        shapes = sf.shapes()
+        islandPolygon = Path(sf.shape(0).points)
+    return islandPolygon
+
+
 if __name__ == "__main__":
     # Arguments for the application
     usage = "usage: %prog [options]"
@@ -51,16 +69,13 @@ if __name__ == "__main__":
     # API-KEY
     parser.add_argument("-k", "--api-key", help="PyBossa User API-KEY to interact with PyBossa", required=True)
     # Create App
-    parser.add_argument("-a", "--create-app", action="store_true", help="Create the application")
+    parser.add_argument("-c", "--create-app", action="store_true", help="Create the application")
+    # Create tasks, using a polygon for the area
+    parser.add_argument("-t", "--task-config", help="File which contains configuration for task creation.")
     # Update template for tasks and long_description for app
     parser.add_argument("-u", "--update-template", action="store_true", help="Update Tasks template")
-    # Update template for tasks and long_description for app
-    parser.add_argument("-c", "--create-tasks", action="store_true", help="Create tasks")
-    parser.add_argument("-b", "--batch", help="Batch name", default="none")
-    # Update tasks question
-    parser.add_argument("-q", "--update-tasks", help="Update Tasks n_answers", action="store_true")
-    # Modify the number of TaskRuns per Task
-    parser.add_argument("-n", "--number-answers", help="Number of answers per task", default=1)
+    # Update tasks
+    parser.add_argument("-q", "--update-tasks", help="Update tasks", action="store_true")
     # Verbose?
     parser.add_argument("-v", "--verbose", action="store_true")
 
@@ -104,42 +119,42 @@ if __name__ == "__main__":
         except:
             format_error("pbclient.update_app", response)
 
-    if args.create_tasks:
-        response = pbclient.find_app(short_name='RuralGeolocator')
+    if args.task_config:
+        config = RawConfigParser()
+        config.read(args.task_config)
+        response = pbclient.find_app(short_name="RuralGeolocator")
         app = response[0]
         app_id = app.id
         #polygon around area to be tasked, as list of (lat, long) lists
-        rusingaOutlineData = json.load(open('data/area.json'))
-        rusingaOutlineVertices = []
-        for point in rusingaOutlineData:
-            rusingaOutlineVertices.append(point)
-        islandPolygon = Path(rusingaOutlineVertices)
-        points = islandPolygon.get_extents().get_points()
+        islandPolygon = polygon_file_to_path(config.get("area", "polygon_file"))
+        extent = islandPolygon.get_extents().get_points()
         #The northern, southern, western, and eastern bounds of the area to work on.
-        nb = points[1][0]
-        wb = points[0][1]
-        sb = points[0][0]
-        eb = points[1][1]
+        nb = extent[1][0]
+        wb = extent[0][1]
+        sb = extent[0][0]
+        eb = extent[1][1]
         print (nb, wb, sb, eb)
         #Size of the tasks, into how many rows and columns should the area be divided.
-        task_cols = 55
-        task_rows = 40
-        ns_step = (sb - nb) / task_cols
-        we_step = (eb - wb) / task_rows
+        task_cols = int(config.get("tasksize", "task_cols"))
+        task_rows = int(config.get("tasksize", "task_rows"))
+        boundary = float(config.get("tasksize", "boundary"))
+        ns_step = (sb - nb) / task_rows
+        ns_boundary = ns_step * boundary
+        we_step = (eb - wb) * boundary
+        we_boundary = we_step / 15
         task_counter = 0
-        for row in range(task_rows):
-            wbr = wb + row * we_step
-            ebr = wb + (row + 1) * we_step
-            for col in range(task_cols):
-                nbc = nb + col * ns_step
-                sbc = nb + (col + 1) * ns_step
+        for col in range(task_cols):
+            wbr = wb + col * we_step
+            ebr = wb + (col + 1) * we_step
+            for row in range(task_rows):
+                nbc = nb + row * ns_step
+                sbc = nb + (row + 1) * ns_step
                 if islandPolygon.intersects_bbox(Bbox([[nbc, wbr], [sbc, ebr]])):
-                    boundary = 0.01
-                    task_info = dict(question=app_config['question'], n_answers=int(args.number_answers),
+                    task_info = dict(question=app_config['question'], n_answers=config.get("meta", "n_answers"),
                                      westbound=wbr, eastbound=ebr, northbound=nbc, southbound=sbc,
-                                     westmapbound=wbr - boundary, eastmapbound=ebr + boundary,
-                                     northmapbound=nbc + boundary, southmapbound=sbc - boundary,
-                                     location=str(row) + "_" + str(col), batch=args.batch)
+                                     westmapbound=wbr - we_boundary, eastmapbound=ebr + we_boundary,
+                                     northmapbound=nbc - ns_boundary, southmapbound=sbc + ns_boundary,
+                                     location=str(row) + "_" + str(col), batch=config.get("meta", "batch_name"))
                     response = pbclient.create_task(app_id, task_info)
                     check_api_error(response)
                     task_counter += 1
