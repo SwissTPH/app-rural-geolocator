@@ -52,6 +52,8 @@
         <div id="question">
             <h3>Add a mark for every house you see, then click <strong>Submit task</strong>.
                  Submit without marks if there are no houses.</h3>
+            <p><a href="http://www.microsoft.com/maps/product/terms.html" target="_blank">
+                Maps by Bing from Microsoft</a></p>
         </div>
         <div id="controls" class="btn-group" data-toggle="buttons-radio" style="padding-bottom:5px;">
             <button id="navigate" class="btn btn-inverse btn-map-ctrl">
@@ -199,8 +201,7 @@ pybossa.taskLoaded(function(task, deferred){
             controls: [
                 new OpenLayers.Control.Navigation(),
                 new OpenLayers.Control.PanZoomBar(),
-                new OpenLayers.Control.MousePosition({displayProjection:new OpenLayers.Projection("EPSG:4326")}),
-                new OpenLayers.Control.Attribution()
+                new OpenLayers.Control.MousePosition({displayProjection:new OpenLayers.Projection("EPSG:4326")})
             ],
             projection: new OpenLayers.Projection("EPSG:900913"),
             displayProjection: new OpenLayers.Projection("EPSG:4326"),
