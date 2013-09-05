@@ -1,4 +1,4 @@
-from argparse import ArgumentParser
+import argparse
 
 from lxml import etree
 from pykml.factory import KML_ElementMaker as KML
@@ -6,7 +6,10 @@ import pbclient
 
 
 def createKMLFromContainer(data, filename):
-    iconColors = ["ff0000ff", "ff00ff00", "ffff0000", "ff00ffff", "ffff00ff", "ffffff00"]
+    iconColors = ["ff0000ff", "ff00ff00", "ffff0000", "ff00ffff", "ffff00ff", "ffffff00",
+                  "ff000077", "ff007700", "ff770000", "ff007777", "ff770077", "ff777700",
+                  "ff7777ff", "ff77ff77", "ffff7777", "ff77ffff", "ffff77ff", "ffffff77",
+                  "ff0077ff", "ff77ff00", "ffff0077"]
     doc = KML.Document()
     for i, color in enumerate(iconColors):
         doc.append(
@@ -17,10 +20,8 @@ def createKMLFromContainer(data, filename):
                 id="report-style-" + str(i)
             )
         )
-    doc.append(KML.Folder("all"))
     colorIndex = 0
     for tIndex, task in enumerate(data):
-        print task
         for hIndex, house in enumerate(task.info["houses"]):
             pm = KML.Placemark(
                 KML.styleUrl("#report-style-" + str(colorIndex % len(iconColors))),
@@ -30,14 +31,13 @@ def createKMLFromContainer(data, filename):
                                                      house["geometry"]["coordinates"][1]))
                 )
             )
-
-            doc.Folder.append(pm)
+            doc.append(pm)
         colorIndex += 1
     out = open(filename, "wb")
     out.write(etree.tostring(doc, pretty_print=True))
     out.close()
 
-parser = ArgumentParser()
+parser = argparse.ArgumentParser()
 parser.add_argument("-k", "--api-key", help="PyBossa User API-KEY to interact with PyBossa", required=True)
 parser.add_argument("-s", "--server", help="PyBossa URL http://domain.com/", default="http://crowdcrafting.org")
 args = parser.parse_args()
@@ -69,4 +69,5 @@ while len(data) > 0:
 
 # Parse the task_run.info data to extract the GeoJSON
 data = [task_run for task_run in task_runs]
+print(len(data))
 createKMLFromContainer(data, "houses.kml")
