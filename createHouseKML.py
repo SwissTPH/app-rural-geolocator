@@ -1,41 +1,23 @@
 import argparse
 
-from lxml import etree
-from pykml.factory import KML_ElementMaker as KML
+import simplekml
 import pbclient
 
 
 def createKMLFromContainer(data, filename):
-    iconColors = ["ff0000ff", "ff00ff00", "ffff0000", "ff00ffff", "ffff00ff", "ffffff00",
-                  "ff000077", "ff007700", "ff770000", "ff007777", "ff770077", "ff777700",
-                  "ff7777ff", "ff77ff77", "ffff7777", "ff77ffff", "ffff77ff", "ffffff77",
-                  "ff0077ff", "ff77ff00", "ffff0077"]
-    doc = KML.Document()
-    for i, color in enumerate(iconColors):
-        doc.append(
-            KML.Style(
-                KML.IconStyle(
-                    KML.color(color),
-                ),
-                id="report-style-" + str(i)
-            )
-        )
-    colorIndex = 0
+    sharedStyle = simplekml.Style()
+    sharedStyle.iconstyle.color = "ff0000ff"
+    sharedStyle.labelstyle.scale = 0.5
+    sharedStyle.iconstyle.scale = 0.5
+
+    kml = simplekml.Kml()
     for tIndex, task in enumerate(data):
-        for hIndex, house in enumerate(task.info["houses"]):
-            pm = KML.Placemark(
-                KML.styleUrl("#report-style-" + str(colorIndex % len(iconColors))),
-                KML.name(str(tIndex) + "-" + str(hIndex)),
-                KML.Point(
-                    KML.coordinates("{0},{1}".format(house["geometry"]["coordinates"][0],
-                                                     house["geometry"]["coordinates"][1]))
-                )
-            )
-            doc.append(pm)
-        colorIndex += 1
-    out = open(filename, "wb")
-    out.write(etree.tostring(doc, pretty_print=True))
-    out.close()
+        for house in task.info["houses"]:
+            pnt = kml.newpoint(name=str(tIndex))
+            pnt.coords = [(house["geometry"]["coordinates"][0], house["geometry"]["coordinates"][1])]
+            pnt.style = sharedStyle
+    kml.save(filename)
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-k", "--api-key", help="PyBossa User API-KEY to interact with PyBossa", required=True)
