@@ -39,7 +39,7 @@ def createKMLFromContainer(data, filename):
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-k", "--api-key", help="PyBossa User API-KEY to interact with PyBossa", required=True)
-parser.add_argument("-s", "--server", help="PyBossa URL http://domain.com/", default="http://crowdcrafting.org")
+parser.add_argument("-s", "--server", help="PyBossa URL http://domain.com/", required=True)
 args = parser.parse_args()
 pbclient.set('api_key', args.api_key)
 pbclient.set('endpoint', args.server)

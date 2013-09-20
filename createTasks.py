@@ -45,19 +45,20 @@ def format_error(module, error):
 
 
 def polygon_file_to_path(filename):
+    areaPolygon = None
     if filename.endswith(".json"):
         #TODO: use proper structure
-        rusingaOutlineData = json.load(open(filename))
-        rusingaOutlineVertices = []
-        for point in rusingaOutlineData:
-            rusingaOutlineVertices.append(point)
-        islandPolygon = Path(rusingaOutlineVertices)
+        areaOutline = json.load(open(filename))
+        areaOutlineVertices = []
+        for point in areaOutline:
+            areaOutlineVertices.append(point)
+        areaPolygon = Path(areaOutlineVertices)
     if filename.endswith(".shp"):
         #TODO: not yet working
         sf = shapefile.Reader(filename)
         shapes = sf.shapes()
-        islandPolygon = Path(sf.shape(0).points)
-    return islandPolygon
+        areaPolygon = Path(sf.shape(0).points)
+    return areaPolygon
 
 
 if __name__ == "__main__":
@@ -65,7 +66,7 @@ if __name__ == "__main__":
     usage = "usage: %prog [options]"
     parser = ArgumentParser(usage)
     # URL where PyBossa listens
-    parser.add_argument("-s", "--server", help="PyBossa URL http://domain.com/", default="http://crowdcrafting.org")
+    parser.add_argument("-s", "--server", help="PyBossa URL http://domain.com/", required=True)
     # API-KEY
     parser.add_argument("-k", "--api-key", help="PyBossa User API-KEY to interact with PyBossa", required=True)
     # Create App
