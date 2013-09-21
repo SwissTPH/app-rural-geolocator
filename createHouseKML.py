@@ -33,21 +33,17 @@ if type(response) == dict and (response.get('status') == 'failed'):
     print response
 # Get the app
 app = response[0]
-data = pbclient.get_taskruns(app_id=app.id, limit=1000, offset=0)
-limit = 100
+moreResults = len(pbclient.get_taskruns(app_id=app.id, limit=1, offset=0)) > 0
+limit = 300
 offset = 0
 task_runs = []
-
-while len(data) > 0:
+while moreResults:
     response = pbclient.get_taskruns(app_id=app.id, limit=limit, offset=offset)
-    if type(response) != dict:
-        # Add the new task runs
+    if len(response) > 0:
         task_runs += response
-        data = response
-        offset += 100
+        offset += limit
     else:
-        # Break the while
-        data = []
+        moreResults = False
 
 # Parse the task_run.info data to extract the GeoJSON
 data = [task_run for task_run in task_runs]
