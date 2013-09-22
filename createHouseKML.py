@@ -1,10 +1,10 @@
 import argparse
-
+import math
 import simplekml
 import pbclient
 
 
-def createKMLFromContainer(data, filename):
+def mapAllHouses(data, filename):
     sharedStyle = simplekml.Style()
     sharedStyle.iconstyle.color = "ff0000ff"
     sharedStyle.labelstyle.scale = 0.5
@@ -17,6 +17,54 @@ def createKMLFromContainer(data, filename):
             pnt.coords = [(house["geometry"]["coordinates"][0], house["geometry"]["coordinates"][1])]
             pnt.style = sharedStyle
     kml.save(filename)
+
+
+def mapPoints(data, filename):
+    colors = ["ffff00ff", "ff00ffff", "ffffff00"]
+    styles = []
+    for color in colors:
+        style = simplekml.Style()
+        style.iconstyle.color = color
+        style.labelstyle.scale = 0.5
+        style.iconstyle.scale = 0.5
+        styles.append(style)
+
+    kml = simplekml.Kml()
+    for point in data:
+        pnt = kml.newpoint(name=str(point[1]))
+        pnt.coords = [(point[0])]
+        pnt.style = styles[min(point[1]-1, 2)]
+    kml.save(filename)
+
+
+def calculateDistance(p1, p2):
+    r = 6371
+    dlat = math.radians(p2[0] - p1[0])
+    dlon = math.radians(p2[1] - p1[1])
+    a = (math.sin(dlat/2) * math.sin(dlat/2) + math.cos(math.radians(p1[0])) * math.cos(math.radians(p2[0])) *
+         math.sin(dlon/2) * math.sin(dlon/2))
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    d = r * c
+    return d * 1000
+
+
+def filterPoints(tasks, distance):
+    filteredPoints = []
+    for task in tasks:
+        #print(task.id)
+        #print(task.task_id)
+        for house in task.info['houses']:
+            merged = False
+            coords = house['geometry']['coordinates']
+            for point in filteredPoints:
+                if calculateDistance(point[0], coords) < distance:
+                    point[0] = [(point[0][0] + coords[0]) / 2, (point[0][1] + coords[1]) / 2]
+                    point[1] += 1
+                    merged = True
+                    break
+            if not merged:
+                filteredPoints.append([coords, 1])
+    return filteredPoints
 
 
 parser = argparse.ArgumentParser()
@@ -45,7 +93,8 @@ while moreResults:
     else:
         moreResults = False
 
-# Parse the task_run.info data to extract the GeoJSON
-data = [task_run for task_run in task_runs]
-print(len(data))
-createKMLFromContainer(data, "houses.kml")
+print(len(task_runs))
+mapAllHouses(task_runs, "allpoints.kml")
+houses = filterPoints(task_runs, 5)
+print(len(houses))
+mapPoints(houses, "houses.kml")
