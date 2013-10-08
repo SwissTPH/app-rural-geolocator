@@ -4,22 +4,22 @@ import simplekml
 import pbclient
 
 
-def mapAllHouses(data, filename):
-    sharedStyle = simplekml.Style()
-    sharedStyle.iconstyle.color = "ff0000ff"
-    sharedStyle.labelstyle.scale = 0.5
-    sharedStyle.iconstyle.scale = 0.5
+def map_all_houses(data, filename):
+    shared_style = simplekml.Style()
+    shared_style.iconstyle.color = "ff0000ff"
+    shared_style.labelstyle.scale = 0.5
+    shared_style.iconstyle.scale = 0.5
 
     kml = simplekml.Kml()
-    for tIndex, task in enumerate(data):
+    for task_index, task in enumerate(data):
         for house in task.info["houses"]:
-            pnt = kml.newpoint(name=str(tIndex))
+            pnt = kml.newpoint(name=str(task_index))
             pnt.coords = [(house["geometry"]["coordinates"][0], house["geometry"]["coordinates"][1])]
-            pnt.style = sharedStyle
+            pnt.style = shared_style
     kml.save(filename)
 
 
-def mapPoints(data, filename):
+def map_points(data, filename):
     colors = ["ffff00ff", "ff00ffff", "ffffff00"]
     styles = []
     for color in colors:
@@ -37,7 +37,7 @@ def mapPoints(data, filename):
     kml.save(filename)
 
 
-def calculateDistance(p1, p2):
+def calculate_distance(p1, p2):
     r = 6371
     dlat = math.radians(p2[0] - p1[0])
     dlon = math.radians(p2[1] - p1[1])
@@ -48,28 +48,27 @@ def calculateDistance(p1, p2):
     return d * 1000
 
 
-def filterPoints(tasks, distance):
-    filteredPoints = []
+def filter_points(tasks, distance):
+    filtered_points = []
     for task in tasks:
-        #print(task.id)
-        #print(task.task_id)
         for house in task.info['houses']:
             merged = False
-            coords = house['geometry']['coordinates']
-            for point in filteredPoints:
-                if calculateDistance(point[0], coords) < distance:
-                    point[0] = [(point[0][0] + coords[0]) / 2, (point[0][1] + coords[1]) / 2]
+            coordinates = house['geometry']['coordinates']
+            for point in filtered_points:
+                if calculate_distance(point[0], coordinates) < distance:
+                    point[0] = [(point[0][0] + coordinates[0]) / 2, (point[0][1] + coordinates[1]) / 2]
                     point[1] += 1
                     merged = True
                     break
             if not merged:
-                filteredPoints.append([coords, 1])
-    return filteredPoints
+                filtered_points.append([coordinates, 1])
+    return filtered_points
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-k", "--api-key", help="PyBossa User API-KEY to interact with PyBossa", required=True)
 parser.add_argument("-s", "--server", help="PyBossa URL http://domain.com/", required=True)
+parser.add_argument("-r", "--radius", help="Radius around points thought to be the same house", required=True)
 args = parser.parse_args()
 pbclient.set('api_key', args.api_key)
 pbclient.set('endpoint', args.server)
@@ -94,7 +93,7 @@ while moreResults:
         moreResults = False
 
 print(len(task_runs))
-mapAllHouses(task_runs, "allpoints.kml")
-houses = filterPoints(task_runs, 5)
+map_all_houses(task_runs, "allpoints.kml")
+houses = filter_points(task_runs, int(args.radius))
 print(len(houses))
-mapPoints(houses, "houses.kml")
+map_points(houses, "houses.kml")
