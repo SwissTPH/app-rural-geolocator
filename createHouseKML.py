@@ -74,23 +74,19 @@ pbclient.set('api_key', args.api_key)
 pbclient.set('endpoint', args.server)
 
 response = pbclient.find_app(short_name='RuralGeolocator')
-# Check errors:
-if type(response) == dict and (response.get('status') == 'failed'):
-    print "Error"
-    print response
 # Get the app
 app = response[0]
-moreResults = len(pbclient.get_taskruns(app_id=app.id, limit=1, offset=0)) > 0
+more_results = len(pbclient.get_taskruns(app_id=app.id, limit=1, offset=0)) > 0
 limit = 300
 offset = 0
 task_runs = []
-while moreResults:
+while more_results:
     response = pbclient.get_taskruns(app_id=app.id, limit=limit, offset=offset)
     if len(response) > 0:
         task_runs += response
         offset += limit
     else:
-        moreResults = False
+        more_results = False
 
 print(len(task_runs))
 map_all_houses(task_runs, "allpoints.kml")
