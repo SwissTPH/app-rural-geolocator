@@ -30,6 +30,7 @@ from matplotlib.transforms import Bbox
 def check_api_error(api_response):
     """Check if returned API response contains an error"""
     if type(api_response) == dict and (api_response.get('status') == 'failed'):
+        print(api_response)
         raise exceptions.HTTPError
 
 
@@ -45,20 +46,20 @@ def format_error(module, error):
 
 
 def polygon_file_to_path(filename):
-    areaPolygon = None
+    area_polygon = None
     if filename.endswith(".json"):
         #TODO: use proper structure
-        areaOutline = json.load(open(filename))
-        areaOutlineVertices = []
-        for point in areaOutline:
-            areaOutlineVertices.append(point)
-        areaPolygon = Path(areaOutlineVertices)
+        area_outline = json.load(open(filename))
+        area_outline_vertices = []
+        for point in area_outline:
+            area_outline_vertices.append(point)
+        area_polygon = Path(area_outline_vertices)
     if filename.endswith(".shp"):
         #TODO: not yet working
         sf = shapefile.Reader(filename)
         shapes = sf.shapes()
-        areaPolygon = Path(sf.shape(0).points)
-    return areaPolygon
+        area_polygon = Path(sf.shape(0).points)
+    return area_polygon
 
 
 if __name__ == "__main__":
@@ -123,7 +124,7 @@ if __name__ == "__main__":
     if args.task_config:
         config = RawConfigParser()
         config.read(args.task_config)
-        response = pbclient.find_app(short_name="RuralGeolocator")
+        response = pbclient.find_app(short_name=app_config['short_name'])
         app = response[0]
         app_id = app.id
         #polygon around area to be tasked, as list of (lat, long) lists
