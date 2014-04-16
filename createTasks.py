@@ -21,8 +21,9 @@ import shapefile
 import logging
 from argparse import ArgumentParser
 from ConfigParser import RawConfigParser
-from requests import exceptions
+import requests
 import pbclient
+import time
 from matplotlib.path import Path
 from matplotlib.transforms import Bbox
 
@@ -31,7 +32,7 @@ def check_api_error(api_response):
     """Check if returned API response contains an error"""
     if type(api_response) == dict and (api_response.get('status') == 'failed'):
         print(api_response)
-        raise exceptions.HTTPError
+        raise requests.exceptions.HTTPError
 
 
 def format_error(module, error):
@@ -145,10 +146,19 @@ if __name__ == "__main__":
         we_step = (eb - wb) / task_rows
         we_boundary = we_step * boundary
         task_counter = 0
+        res = requests.get(args.server + '/api/app')
+        remaining_requests = int(res.headers['x-ratelimit-remaining'])
         for col in range(task_cols):
             wbr = wb + col * we_step
             ebr = wb + (col + 1) * we_step
             for row in range(task_rows):
+                while remaining_requests < 10:
+                    res = requests.get(args.server + '/api/app')
+                    remaining_requests = int(res.headers['x-ratelimit-remaining'])
+                    if remaining_requests < 10:
+                        print(remaining_requests)
+                        time.sleep(60)
+                        print(remaining_requests)
                 nbc = nb + row * ns_step
                 sbc = nb + (row + 1) * ns_step
                 if islandPolygon.intersects_bbox(Bbox([[nbc, wbr], [sbc, ebr]])):
@@ -161,6 +171,7 @@ if __name__ == "__main__":
                     check_api_error(response)
                     task_counter += 1
                     print(task_counter)
+                    remaining_requests -= 1
 
     if args.update_template:
         print "Updating app template"
