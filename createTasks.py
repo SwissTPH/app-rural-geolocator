@@ -142,8 +142,8 @@ if __name__ == "__main__":
         boundary = float(config.get("tasksize", "boundary"))
         ns_step = (sb - nb) / task_rows
         ns_boundary = ns_step * boundary
-        we_step = (eb - wb) * boundary
-        we_boundary = we_step / 15
+        we_step = (eb - wb) / task_rows
+        we_boundary = we_step * boundary
         task_counter = 0
         for col in range(task_cols):
             wbr = wb + col * we_step
