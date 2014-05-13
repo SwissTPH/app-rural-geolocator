@@ -169,7 +169,11 @@ function restrictView(map, bounds) {
     map.zoomToExtent(bounds);
     var minZoomLevel = map.getZoom();
     map.events.register("zoomend", this, function(e){
-        if (map.getZoom() < minZoomLevel){
+        if (map.getZoom() < minZoomLevel ){
+            map.zoomToExtent(bounds);
+        }
+        //TODO: next line added for low-res tiles
+        if (map.getZoom() > 17 ){
             map.zoomToExtent(bounds);
         }
         console.log(bounds)
@@ -200,6 +204,7 @@ pybossa.taskLoaded(function(task, deferred){
         task.map = new OpenLayers.Map("map_" + task.id, {
             controls: [
                 new OpenLayers.Control.Navigation(),
+                //TODO: max zoom level should depend on tile resolution
                 new OpenLayers.Control.PanZoomBar(),
                 new OpenLayers.Control.MousePosition({displayProjection:new OpenLayers.Projection("EPSG:4326")})
             ],
@@ -212,8 +217,10 @@ pybossa.taskLoaded(function(task, deferred){
         // API key for http://openlayers.org. Please get your own at
         // http://bingmapsportal.com/ and use that instead.
         //var apiKey = "AqTGBsziZHIJYYxgivLBf0hVdrAk9mWO5cQcb8Yux8sW5M8c8opEC2lZqKR1ZZXf";
-        //my key
+        //crowdcrafting.org key
         var apiKey = "As1jW63G51I3Z3jFZmmsNHsJ8CVxNtkyd7VCtzXk-E0Bztzd80fR0axNXApJW3O5";
+        //test key
+        //var apiKey = "AvG7hej7Y1yUJ88z7HI6AGnzzbgqE_e1OffJj3k1ji4OkBf_66Ii_HknyB6tQS-k";
 
         task.satelliteLayer = new OpenLayers.Layer.Bing({
             key: apiKey,
@@ -257,7 +264,7 @@ pybossa.taskLoaded(function(task, deferred){
             featureadded: function(e) {
                 var feature = task.areaLayer.getFeatureById(e.feature.id);
                 if (!bb.contains(feature.geometry.x, feature.geometry.y, false)) {
-                    var remove =  alert("Please only mark housed inside the box");
+                    var remove =  alert("Please only mark houses inside the box");
                     task.areaLayer.removeFeatures(feature);
                 }
             }
@@ -331,7 +338,7 @@ pybossa.presentTask(function(task, deferred){
                 answer.push(JSON.parse(geojson.write(task.areaLayer.features[i])));
             }
 
-            pybossa.saveTask(task.id, {'houses': answer}).done( function(data) {
+            pybossa.saveTask(task.id, {'houses': answer, 'batch': task.info.batch}).done( function(data) {
                 // Show the feedback div
                 console.log(answer);
                 $("#success").fadeIn();

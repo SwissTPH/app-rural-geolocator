@@ -89,7 +89,14 @@ while more_results:
         more_results = False
 
 print(len(task_runs))
-map_all_houses(task_runs, "allpoints.kml")
-houses = filter_points(task_runs, int(args.radius))
-print(len(houses))
-map_points(houses, "houses.kml")
+batches = {}
+for task in task_runs:
+    batch = task.info['batch']
+    if not batch in batches.keys():
+        batches[batch] = []
+    batches[batch].append(task)
+for batch in batches.keys():
+    map_all_houses(batches[batch], batch + "_allpoints.kml")
+    houses = filter_points(task_runs, int(args.radius))
+    print(len(houses))
+    map_points(houses, batch + "_houses.kml")

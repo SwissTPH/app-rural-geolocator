@@ -23,6 +23,7 @@ from argparse import ArgumentParser
 from ConfigParser import RawConfigParser
 import requests
 import pbclient
+import simplekml
 import time
 from matplotlib.path import Path
 from matplotlib.transforms import Bbox
@@ -63,10 +64,95 @@ def polygon_file_to_path(filename):
     return area_polygon
 
 
+def create_tasks(app_config, submit_tasks):
+    config = RawConfigParser()
+    config.read(args.task_config)
+    response = pbclient.find_app(short_name=app_config['short_name'])
+    app = response[0]
+    app_id = app.id
+    #polygon around area to be tasked, as list of (lat, long) lists
+    area_polygon = polygon_file_to_path(config.get("area", "polygon_file"))
+    extent = area_polygon.get_extents().get_points()
+    #The northern, southern, western, and eastern bounds of the area to work on.
+    nb = extent[1][0]
+    wb = extent[0][1]
+    sb = extent[0][0]
+    eb = extent[1][1]
+    shared_style = simplekml.Style()
+    shared_style.iconstyle.color = "ff0000ff"
+    shared_style.labelstyle.scale = 0.5
+    shared_style.iconstyle.scale = 0.5
+    kml = simplekml.Kml()
+    pnt = kml.newpoint(name="NW")
+    pnt.coords = [(wb, nb)]
+    pnt.style = shared_style
+    pnt = kml.newpoint(name="NE")
+    pnt.coords = [(eb, nb)]
+    pnt.style = shared_style
+    pnt = kml.newpoint(name="SW")
+    pnt.coords = [(wb, sb)]
+    pnt.style = shared_style
+    pnt = kml.newpoint(name="SE")
+    pnt.coords = [(eb, sb)]
+    pnt.style = shared_style
+    #Size of the tasks, into how many rows and columns should the area be divided.
+    task_cols = int(config.get("tasksize", "task_cols"))
+    task_rows = int(config.get("tasksize", "task_rows"))
+    boundary = float(config.get("tasksize", "boundary"))
+    ns_step = (sb - nb) / task_rows
+    ns_boundary = ns_step * boundary
+    we_step = (eb - wb) / task_cols
+    we_boundary = we_step * boundary
+    task_counter = 0
+    if submit_tasks:
+        res = requests.get(args.server + '/api/app')
+        remaining_requests = int(res.headers['x-ratelimit-remaining'])
+        print("Remaining requests: " + str(remaining_requests))
+    else:
+        remaining_requests = 99999
+    for col in range(task_cols):
+        wbr = wb + col * we_step
+        ebr = wb + (col + 1) * we_step
+        for row in range(task_rows):
+            while remaining_requests < 10:
+                time.sleep(60)
+                res = requests.get(args.server + '/api/app')
+                remaining_requests = int(res.headers['x-ratelimit-remaining'])
+                print(remaining_requests)
+            nbc = nb + row * ns_step
+            sbc = nb + (row + 1) * ns_step
+            if area_polygon.intersects_bbox(Bbox([[nbc, wbr], [sbc, ebr]])):
+                if submit_tasks:
+                    task_info = dict(question=app_config['question'], n_answers=config.get("meta", "n_answers"),
+                                     westbound=wbr, eastbound=ebr, northbound=nbc, southbound=sbc,
+                                     westmapbound=wbr - we_boundary, eastmapbound=ebr + we_boundary,
+                                     northmapbound=nbc - ns_boundary, southmapbound=sbc + ns_boundary,
+                                     location=str(row) + "_" + str(col), batch=config.get("meta", "batch_name"))
+                    response = pbclient.create_task(app_id, task_info)
+                    check_api_error(response)
+                    remaining_requests -= 1
+                pnt = kml.newpoint(name=str(task_counter))
+                pnt.coords = [(wbr, nbc)]
+                pnt.style = shared_style
+                pnt = kml.newpoint(name=str(task_counter))
+                pnt.coords = [(ebr, nbc)]
+                pnt.style = shared_style
+                pnt = kml.newpoint(name=str(task_counter))
+                pnt.coords = [(wbr, sbc)]
+                pnt.style = shared_style
+                pnt = kml.newpoint(name=str(task_counter))
+                pnt.coords = [(ebr, sbc)]
+                pnt.style = shared_style
+                task_counter += 1
+                print("Task: " + str(task_counter))
+    kml.save(config.get("meta", "batch_name") + "_tasks.kml")
+
 if __name__ == "__main__":
     # Arguments for the application
     usage = "usage: %prog [options]"
     parser = ArgumentParser(usage)
+    # only write corners of tasks to kml and exit
+    parser.add_argument("-d", "--dry", help="Write kml and exit", action="store_true")
     # URL where PyBossa listens
     parser.add_argument("-s", "--server", help="PyBossa URL http://domain.com/", required=True)
     # API-KEY
@@ -84,14 +170,15 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+
+    app_config = None
     # Load app details
     try:
-        app_json = open('app.json')
-        app_config = json.load(app_json)
-        app_json.close()
-    except IOError as e:
-        print "app.json is missing! Please create a new one"
-        exit(0)
+        with file('app.json') as app_json:
+            app_config = json.load(app_json)
+    except IOError:
+        print "application config file is missing! Please create a new one"
+        exit(1)
 
     pbclient.set('endpoint', args.server)
     pbclient.set('api_key', args.api_key)
@@ -99,6 +186,10 @@ if __name__ == "__main__":
     if args.verbose:
         print('Running against PyBosssa instance at: %s' % args.server)
         print('Using API-KEY: %s' % args.api_key)
+
+    if args.dry:
+        create_tasks(app_config, False)
+        exit(0)
 
     if args.create_app:
         try:
@@ -123,55 +214,7 @@ if __name__ == "__main__":
             format_error("pbclient.update_app", response)
 
     if args.task_config:
-        config = RawConfigParser()
-        config.read(args.task_config)
-        response = pbclient.find_app(short_name=app_config['short_name'])
-        app = response[0]
-        app_id = app.id
-        #polygon around area to be tasked, as list of (lat, long) lists
-        islandPolygon = polygon_file_to_path(config.get("area", "polygon_file"))
-        extent = islandPolygon.get_extents().get_points()
-        #The northern, southern, western, and eastern bounds of the area to work on.
-        nb = extent[1][0]
-        wb = extent[0][1]
-        sb = extent[0][0]
-        eb = extent[1][1]
-        print (nb, wb, sb, eb)
-        #Size of the tasks, into how many rows and columns should the area be divided.
-        task_cols = int(config.get("tasksize", "task_cols"))
-        task_rows = int(config.get("tasksize", "task_rows"))
-        boundary = float(config.get("tasksize", "boundary"))
-        ns_step = (sb - nb) / task_rows
-        ns_boundary = ns_step * boundary
-        we_step = (eb - wb) / task_rows
-        we_boundary = we_step * boundary
-        task_counter = 0
-        res = requests.get(args.server + '/api/app')
-        remaining_requests = int(res.headers['x-ratelimit-remaining'])
-        for col in range(task_cols):
-            wbr = wb + col * we_step
-            ebr = wb + (col + 1) * we_step
-            for row in range(task_rows):
-                while remaining_requests < 10:
-                    res = requests.get(args.server + '/api/app')
-                    remaining_requests = int(res.headers['x-ratelimit-remaining'])
-                    if remaining_requests < 10:
-                        print(remaining_requests)
-                        time.sleep(60)
-                        print(remaining_requests)
-                nbc = nb + row * ns_step
-                sbc = nb + (row + 1) * ns_step
-                if islandPolygon.intersects_bbox(Bbox([[nbc, wbr], [sbc, ebr]])):
-                    task_info = dict(question=app_config['question'], n_answers=config.get("meta", "n_answers"),
-                                     westbound=wbr, eastbound=ebr, northbound=nbc, southbound=sbc,
-                                     westmapbound=wbr - we_boundary, eastmapbound=ebr + we_boundary,
-                                     northmapbound=nbc - ns_boundary, southmapbound=sbc + ns_boundary,
-                                     location=str(row) + "_" + str(col), batch=config.get("meta", "batch_name"))
-                    response = pbclient.create_task(app_id, task_info)
-                    check_api_error(response)
-                    task_counter += 1
-                    print(task_counter)
-                    remaining_requests -= 1
+        create_tasks(app_config, True)
 
     if args.update_template:
         print "Updating app template"
