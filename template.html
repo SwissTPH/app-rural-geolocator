@@ -51,7 +51,7 @@
     <div id="answer" class="skeleton span10">
         <div id="question">
             <h3>Add a mark for every house you see, then click <strong>Submit task</strong>.
-                 Submit without marks if there are no houses.</h3>
+                 Submit without marks if there are no houses, or if there is no satellite image available.</h3>
             <p><a href="http://www.microsoft.com/maps/product/terms.html" target="_blank">
                 Maps by Bing from Microsoft</a></p>
         </div>
@@ -173,7 +173,7 @@ function restrictView(map, bounds) {
             map.zoomToExtent(bounds);
         }
         //TODO: next line added for low-res tiles
-        if (map.getZoom() > 17 ){
+        if (map.getZoom() > 18 ){
             map.zoomToExtent(bounds);
         }
         console.log(bounds)

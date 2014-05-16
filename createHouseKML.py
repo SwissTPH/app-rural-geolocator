@@ -91,12 +91,15 @@ while more_results:
 print(len(task_runs))
 batches = {}
 for task in task_runs:
-    batch = task.info['batch']
+    if 'batch' in task.info.keys():
+        batch = task.info['batch']
+    else:
+        batch = 'na'
     if not batch in batches.keys():
         batches[batch] = []
     batches[batch].append(task)
 for batch in batches.keys():
     map_all_houses(batches[batch], batch + "_allpoints.kml")
-    houses = filter_points(task_runs, int(args.radius))
-    print(len(houses))
+    houses = filter_points(batches[batch], int(args.radius))
+    print("Batch: " + batch + " Houses: " + str(len(houses)))
     map_points(houses, batch + "_houses.kml")
