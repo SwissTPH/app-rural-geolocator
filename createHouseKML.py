@@ -64,18 +64,8 @@ def filter_points(tasks, distance):
                 filtered_points.append([coordinates, 1])
     return filtered_points
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-k", "--api-key", help="PyBossa User API-KEY to interact with PyBossa", required=True)
-    parser.add_argument("-s", "--server", help="PyBossa URL http://domain.com/", required=True)
-    parser.add_argument("-r", "--radius", help="Radius around points thought to be the same house", required=True)
-    args = parser.parse_args()
-    pbclient.set('api_key', args.api_key)
-    pbclient.set('endpoint', args.server)
 
-    response = pbclient.find_app(short_name='RuralGeolocator')
-    # Get the app
-    app = response[0]
+def get_results(app):
     more_results = len(pbclient.get_taskruns(app_id=app.id, limit=1, offset=0)) > 0
     limit = 300
     offset = 0
@@ -87,8 +77,10 @@ if __name__ == "__main__":
             offset += limit
         else:
             more_results = False
+    return task_runs
 
-    print(len(task_runs))
+
+def process_results(task_runs):
     batches = {}
     for task in task_runs:
         if 'batch' in task.info.keys():
@@ -103,3 +95,20 @@ if __name__ == "__main__":
         houses = filter_points(batches[batch], int(args.radius))
         print("Batch: " + batch + " Houses: " + str(len(houses)))
         map_points(houses, batch + "_houses.kml")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-k", "--api-key", help="PyBossa User API-KEY to interact with PyBossa", required=True)
+    parser.add_argument("-s", "--server", help="PyBossa URL http://domain.com/", required=True)
+    parser.add_argument("-r", "--radius", help="Radius around points thought to be the same house", required=True)
+    args = parser.parse_args()
+    pbclient.set('api_key', args.api_key)
+    pbclient.set('endpoint', args.server)
+
+    response = pbclient.find_app(short_name='RuralGeolocator')
+    # Get the app
+    app = response[0]
+    task_runs = get_results(app)
+    print(len(task_runs))
+    process_results(task_runs)
